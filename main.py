@@ -13,16 +13,14 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-FOCUS_CHANNEL_NAME = "create-lobby"
-CATEGORY = "LOBBY"
+FOCUS_CHANNEL_NAME = "➕ create-lobby"
+CATEGORY = "Active lobbys"
 
 
 @client.event
 async def on_voice_state_update(member: Member, before: VoiceState, after: VoiceState):
     guild: Guild = member.guild
-
-    voice_channels = await delete_empty_voice_channels(guild=guild)
-    await delete_category_without_voice_channel(guild=guild, voice_channels=voice_channels)
+    await delete_empty_voice_channels(guild=guild)
 
     if after.channel is None:
         return
@@ -45,8 +43,12 @@ async def make_channel(guild: Guild, member: Member):
     if category is None:
         category = await guild.create_category(CATEGORY)
 
+    channel_name = f"{member.display_name.capitalize()} | Lobby"
+    channel_exists = next((x.name for x in guild.voice_channels if x.name == channel_name), None)
+    if channel_exists:
+        return
     channel = await guild.create_voice_channel(
-        f"{member.name.capitalize()} | Lobby",
+        channel_name,
         category=category,
         user_limit=5
     )
@@ -64,14 +66,6 @@ async def delete_empty_voice_channels(guild: Guild) -> List[VoiceChannel]:
         voice_channels = [x for x in voice_channels if x.name != x.name]
         await x.delete()
     return voice_channels
-
-
-async def delete_category_without_voice_channel(guild: Guild, voice_channels: List[VoiceChannel]):
-    if not voice_channels == []:
-        return
-    category = get_category(guild=guild)
-    if category is not None:
-        await category.delete()
 
 
 class TokenException(Exception):
